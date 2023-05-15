@@ -29,27 +29,26 @@ public:
       return den;
    }
 
-   float operacion1(Fraccion fraccion1, Fraccion fraccion2) override
+   void operacion(float flotante, Fraccion fraccion) override
+   {
+      flotante = fraccion.getDenominador() - flotante + (flotante * fraccion.getNumerador());
+   }
+
+   float operacion(Fraccion fraccion1, Fraccion fraccion2) override
    {
       return fraccion1.getNumerador()*fraccion2.getNumerador();
    }
 
-   Fraccion operacion2(Fraccion fraccion1, Fraccion fraccion2) override
-   {
-      Fraccion fraccion(fraccion1.getNumerador(), fraccion2.getDenominador());
-      return fraccion;
-   }
-
-   Fraccion operacion3(float flotante1, float flotante2) override
+   Fraccion operacion(float flotante1, float flotante2) override
    {
       Fraccion fraccion(flotante1 * flotante2, flotante1 - flotante2);
       fraccion.setDenominador(validarDenominador(fraccion.getDenominador()));
       return fraccion;
    }
 
-   float operacion4(float flotante1, float flotante2) override
+   float operacion(float flotante1, float flotante2, float flotante) override
    {
-      return flotante1 * flotante2;
+      return flotante1 * flotante2 * flotante - flotante1;
    }
 
 };

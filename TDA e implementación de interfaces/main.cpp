@@ -21,8 +21,9 @@ using namespace std;
 int main(int argc, char const *argv[])
 {
 	Fraccion fraccion;
-	Fraccion obj1(2.22, 0.44);
+	Fraccion obj1(2.22, 17.44);
 	Fraccion obj2(4.00, 3.44);
+	Fraccion obj3(4.87, 7.98);
 	fraccion = fraccion.proceso(obj1, obj2);
 	fraccion.toString();
 
@@ -31,12 +32,20 @@ int main(int argc, char const *argv[])
 
 	InterfaceOperaciones* op = new Operaciones();
 
-	cout << "Operacion 1: "<< op->operacion1(obj1, obj2);
-	cout << "\nOperacion 2: ";
-	op->operacion2(obj1, obj2).toString();
-	cout << "Operacion 3: ";
-	op->operacion3(-3.9F, -3.9F).toString();
-	cout << "Operacion 4: "<< op->operacion4(2.3, 4.1);
+	float flotante_funcion = 3.00F;
+
+	cout << "Operacion con flotante y TDA, no retorna nada: "; 
+	op->operacion(flotante_funcion, obj2);
+	cout << flotante_funcion << endl;
+
+	cout << "\nOperacion con dos fracciones pero retorna un flotante : "
+	<< op->operacion(obj1, obj2) << endl;
+
+	cout << "\nOperacion con 2 flotantes y me retorna una Fraccion"; 
+	op->operacion(-3.9F, 73.9F).toString();
+
+	cout << "\nOpreacion con 3 flotantes y me retorna un flotante : "
+	<<op->operacion(2.3, 4.1, flotante_funcion)<< endl;
 
 	system("pause");
 

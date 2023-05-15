@@ -19,10 +19,13 @@ Crear 4 operaciones en una interface que incluyan datos abstractos
 class InterfaceOperaciones
 {
 public:
-   virtual float operacion1(Fraccion fraccion1, Fraccion fraccion2)=0;
-   virtual Fraccion operacion2(Fraccion fraccion1, Fraccion fraccion2)=0;
-   virtual Fraccion operacion3(float flotante1, float flotante2)=0;
-   virtual float operacion4(float flotante1, float flotante2)=0;
+   virtual void operacion(float floatante, Fraccion fraccion)=0;
+
+   virtual float operacion(Fraccion fraccion1, Fraccion fraccion2)=0;
+
+   virtual Fraccion operacion(float flotante1, float flotante2)=0;
+
+   virtual float operacion(float flotante1, float flotante2, float flotante)=0;
 
 protected:
 private:
