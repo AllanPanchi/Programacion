@@ -1,0 +1,40 @@
+p{
+    color: #f00;
+}
+
+.titulo-h2{
+    color: fuchsia;
+}
+
+.titulo-h2-1:hover{
+    color: darkmagenta;
+}
+
+#element{
+    color: blue;
+}
+
+[hola="a"]{
+    color: green;
+}
+
+h2 p{
+    color: gray;
+}
+
+h2 b{
+    color: maroon;
+}
+
+.contact-form{
+    font-size: 20px;
+}
+
+.contact-form__h2{
+    color: black;
+    font-size: 5em;
+}
+
+.forms__input:first-child{
+    color: aqua;
+}
