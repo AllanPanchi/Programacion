@@ -26,8 +26,8 @@ export const Nav = () => {
             <a href="#" className="text-white hover:bg-indigo-800 rounded-full px-5 py-2 text-x1">Projects</a>
             <a href="#" className="text-white hover:bg-indigo-800 rounded-full px-5 py-2 text-x1">Contact Me</a>
           </div>
-          <div className="ssm:block lg:hidden">
-            <VscThreeBars size={30} className="text-white cursor-pointer" onClick={handleShowMenu}/>
+          <div className="ssm:block lg:hidden transition duration-300 ease-in-out">
+            <VscThreeBars size={40} className="text-white cursor-pointer hover:bg-indigo-800 rounded-full px-1" onClick={handleShowMenu}/>
           </div>
         </div>
       </div>
