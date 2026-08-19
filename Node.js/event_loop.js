@@ -1,21 +1,24 @@
-const http = require('http')
+'use strict'
 
-const port = 3000
+console.log("Tarea1")
 
-const server = http.createServer( (req, res) => {
-    if(req.url === '/'){
-        res.write('Bienvenido')
-        return res.end()
-    }
-    if(req.url === '/about'){
-        res.write('Sobre mi')
-        return res.end()
-    }
+setTimeout( () => {
+    console.log("Tarea2")
+}, 0)
 
-    res.write('no se encontro')
-    res.end()
+Promise.resolve().then( () => {
+    console.log("Microtarea1")
 })
 
-server.listen(port)
+console.log('Tarea3')
 
-console.log(`Servidor corriendo en el puerto ${port}`)
+Promise.resolve().then( () => {
+    console.log("Microtarea2")
+})
+
+async function mostrarMensaje(){
+    const mensaje = await "HOLA MUNDO MOSTRANDO ASYNC"
+    console.log(mensaje)
+}
+
+mostrarMensaje()
