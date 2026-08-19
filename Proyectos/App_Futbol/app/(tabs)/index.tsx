@@ -1,9 +1,10 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useMemo, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { FlatList, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { CategoriasModal } from '@/components/CategoriasModal';
 import { JugadorCard } from '@/components/JugadorCard';
 import { JugadorModal } from '@/components/JugadorModal';
 import { Confirmar } from '@/components/ui/Confirmar';
@@ -19,6 +20,9 @@ export default function JugadoresScreen() {
   const t = useTema();
   const {
     jugadores,
+    categorias,
+    categoriaActual,
+    seleccionarCategoria,
     idsEnCancha,
     agregarJugador,
     actualizarJugador,
@@ -28,6 +32,7 @@ export default function JugadoresScreen() {
   const [busqueda, setBusqueda] = useState('');
   const [filtro, setFiltro] = useState<Filtro>('TODOS');
   const [modalVisible, setModalVisible] = useState(false);
+  const [categoriasVisible, setCategoriasVisible] = useState(false);
   const [editando, setEditando] = useState<Jugador | null>(null);
   const [porEliminar, setPorEliminar] = useState<Jugador | null>(null);
 
@@ -55,7 +60,7 @@ export default function JugadoresScreen() {
     setModalVisible(true);
   }
 
-  function guardar(datos: Omit<Jugador, 'id'>, id?: string) {
+  function guardar(datos: Omit<Jugador, 'id' | 'categoriaId'>, id?: string) {
     if (id) actualizarJugador(id, datos);
     else agregarJugador(datos);
     setModalVisible(false);
@@ -79,10 +84,44 @@ export default function JugadoresScreen() {
                 {jugadores.length}
               </Texto>
               <Texto variante="overline" color="rgba(255,255,255,0.75)">
-                EN TOTAL
+                EN {(categoriaActual?.nombre ?? '').toUpperCase() || 'TOTAL'}
               </Texto>
             </View>
           </View>
+
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.categorias}>
+            {categorias.map((c) => {
+              const activa = c.id === categoriaActual?.id;
+              return (
+                <Pressable
+                  key={c.id}
+                  onPress={() => seleccionarCategoria(c.id)}
+                  accessibilityRole="tab"
+                  accessibilityState={{ selected: activa }}
+                  accessibilityLabel={`Categoría ${c.nombre}`}
+                  style={[
+                    styles.categoriaChip,
+                    { backgroundColor: activa ? '#FFFFFF' : 'rgba(255,255,255,0.16)' },
+                  ]}>
+                  <Texto
+                    variante="captionStrong"
+                    color={activa ? t.primaryDeep : '#FFFFFF'}
+                    numberOfLines={1}>
+                    {c.nombre}
+                  </Texto>
+                </Pressable>
+              );
+            })}
+            <Pressable
+              onPress={() => setCategoriasVisible(true)}
+              accessibilityLabel="Gestionar categorías"
+              style={styles.categoriaGestion}>
+              <Ionicons name="options-outline" size={16} color="#FFFFFF" />
+            </Pressable>
+          </ScrollView>
 
           <View style={styles.resumen}>
             {ORDEN_ROLES.map((rol) => (
@@ -194,8 +233,14 @@ export default function JugadoresScreen() {
         visible={modalVisible}
         jugador={editando}
         jugadores={jugadores}
+        categoriaNombre={categoriaActual?.nombre ?? ''}
         onGuardar={guardar}
         onCerrar={() => setModalVisible(false)}
+      />
+
+      <CategoriasModal
+        visible={categoriasVisible}
+        onCerrar={() => setCategoriasVisible(false)}
       />
 
       <Confirmar
@@ -231,10 +276,30 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.md,
     gap: Spacing.md,
   },
-  totalCaja: { alignItems: 'flex-end' },
+  totalCaja: { alignItems: 'flex-end', maxWidth: 140 },
+  categorias: {
+    gap: Spacing.sm,
+    alignItems: 'center',
+    marginTop: Spacing.lg,
+  },
+  categoriaChip: {
+    paddingHorizontal: Spacing.md,
+    paddingVertical: 7,
+    borderRadius: Radius.pill,
+    maxWidth: 150,
+  },
+  categoriaGestion: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.5)',
+  },
   resumen: {
     flexDirection: 'row',
-    marginTop: Spacing.lg,
+    marginTop: Spacing.md,
     backgroundColor: 'rgba(255,255,255,0.14)',
     borderRadius: Radius.md,
     paddingVertical: Spacing.md,

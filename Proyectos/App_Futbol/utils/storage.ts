@@ -1,15 +1,22 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import { Alineacion, Jugador, Rol } from '@/types/futbol';
+import { Alineacion, Categoria, Jugador, Rol } from '@/types/futbol';
 import { FORMACION_POR_DEFECTO } from '@/utils/formaciones';
 
 const JUGADORES_KEY = '@futbol/jugadores';
 const ALINEACIONES_KEY = '@futbol/alineaciones';
 const ALINEACION_ACTUAL_KEY = '@futbol/alineacion_actual';
+const CATEGORIAS_KEY = '@futbol/categorias';
+const CATEGORIA_ACTUAL_KEY = '@futbol/categoria_actual';
 
 const ROLES_VALIDOS: Rol[] = ['POR', 'DEF', 'MED', 'DEL'];
 
-/** Completa los campos que no existían en versiones anteriores de los datos guardados. */
+/**
+ * Categoría a la que se asignan los datos guardados antes de que existieran las
+ * categorías, para que ninguna plantilla anterior se quede huérfana.
+ */
+export const CATEGORIA_POR_DEFECTO: Categoria = { id: 'general', nombre: 'General' };
+
 function normalizarJugador(raw: Partial<Jugador>): Jugador {
   const rol = raw.rol && ROLES_VALIDOS.includes(raw.rol) ? raw.rol : 'MED';
   return {
@@ -17,6 +24,7 @@ function normalizarJugador(raw: Partial<Jugador>): Jugador {
     nombre: String(raw.nombre ?? ''),
     numero: Number(raw.numero ?? 0),
     rol,
+    categoriaId: raw.categoriaId ?? CATEGORIA_POR_DEFECTO.id,
   };
 }
 
@@ -24,6 +32,7 @@ function normalizarAlineacion(raw: Partial<Alineacion>): Alineacion {
   return {
     id: String(raw.id ?? Date.now()),
     nombre: String(raw.nombre ?? 'Alineación'),
+    categoriaId: raw.categoriaId ?? CATEGORIA_POR_DEFECTO.id,
     formacion: raw.formacion ?? FORMACION_POR_DEFECTO,
     posiciones: Array.isArray(raw.posiciones) ? raw.posiciones : [],
     capitanId: raw.capitanId ?? null,
@@ -38,6 +47,26 @@ async function leerJSON<T>(key: string): Promise<T | null> {
   } catch {
     return null;
   }
+}
+
+export async function getCategorias(): Promise<Categoria[]> {
+  const data = await leerJSON<Partial<Categoria>[]>(CATEGORIAS_KEY);
+  const lista = (data ?? [])
+    .filter((c) => c && c.id && c.nombre)
+    .map((c) => ({ id: String(c.id), nombre: String(c.nombre) }));
+  return lista.length > 0 ? lista : [CATEGORIA_POR_DEFECTO];
+}
+
+export async function saveCategorias(categorias: Categoria[]): Promise<void> {
+  await AsyncStorage.setItem(CATEGORIAS_KEY, JSON.stringify(categorias));
+}
+
+export async function getCategoriaActualId(): Promise<string | null> {
+  return AsyncStorage.getItem(CATEGORIA_ACTUAL_KEY);
+}
+
+export async function setCategoriaActualId(id: string): Promise<void> {
+  await AsyncStorage.setItem(CATEGORIA_ACTUAL_KEY, id);
 }
 
 export async function getJugadores(): Promise<Jugador[]> {

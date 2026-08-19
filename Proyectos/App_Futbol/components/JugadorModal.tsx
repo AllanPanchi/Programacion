@@ -21,14 +21,17 @@ export function JugadorModal({
   visible,
   jugador,
   jugadores,
+  categoriaNombre,
   onGuardar,
   onCerrar,
 }: {
   visible: boolean;
   /** `null` para dar de alta, o el jugador a editar. */
   jugador: Jugador | null;
+  /** Solo los de la categoría activa: el dorsal únicamente choca dentro de su categoría. */
   jugadores: Jugador[];
-  onGuardar: (datos: Omit<Jugador, 'id'>, id?: string) => void;
+  categoriaNombre: string;
+  onGuardar: (datos: Omit<Jugador, 'id' | 'categoriaId'>, id?: string) => void;
   onCerrar: () => void;
 }) {
   const t = useTema();
@@ -57,8 +60,11 @@ export function JugadorModal({
       setError('El dorsal debe ser un número entre 1 y 99.');
       return;
     }
-    if (jugadores.some((j) => j.numero === numeroInt && j.id !== jugador?.id)) {
-      setError(`El dorsal ${numeroInt} ya lo lleva otro jugador.`);
+    // El choque de dorsal se comprueba solo dentro de la categoría: el 10 de
+    // Master y el 10 de Senior pueden convivir sin problema.
+    const repetido = jugadores.find((j) => j.numero === numeroInt && j.id !== jugador?.id);
+    if (repetido) {
+      setError(`En ${categoriaNombre} el dorsal ${numeroInt} ya es de ${repetido.nombre}.`);
       return;
     }
 

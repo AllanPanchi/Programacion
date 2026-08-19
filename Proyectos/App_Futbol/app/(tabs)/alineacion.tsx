@@ -17,6 +17,7 @@ export default function AlineacionScreen() {
   const t = useTema();
   const {
     jugadores,
+    categoriaActual,
     alineaciones,
     alineacionActual,
     idsEnCancha,
@@ -66,8 +67,9 @@ export default function AlineacionScreen() {
         <SafeAreaView edges={['top']}>
           <View style={styles.cabeceraFila}>
             <View style={styles.flex}>
-              <Texto variante="overline" color="rgba(255,255,255,0.75)">
-                ALINEACIÓN · {alineacionActual.formacion}
+              <Texto variante="overline" color="rgba(255,255,255,0.75)" numberOfLines={1}>
+                {(categoriaActual?.nombre ?? 'ALINEACIÓN').toUpperCase()} ·{' '}
+                {alineacionActual.formacion}
               </Texto>
               <Texto variante="display" color="#FFFFFF" numberOfLines={1}>
                 {alineacionActual.nombre}
@@ -131,47 +133,47 @@ export default function AlineacionScreen() {
       </LinearGradient>
 
       <View style={styles.cuerpo}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.formacionesScroll}
-          contentContainerStyle={styles.formaciones}>
-          {FORMACIONES.map((f) => {
-            const activa = f.id === alineacionActual.formacion;
-            return (
-              <Pressable
-                key={f.id}
-                onPress={() => aplicarFormacion(f.id)}
-                accessibilityRole="tab"
-                accessibilityState={{ selected: activa }}
-                accessibilityLabel={`Formación ${f.id}`}
-                style={[
-                  styles.chipFormacion,
-                  {
-                    backgroundColor: activa ? t.primary : t.surface,
-                    borderColor: activa ? t.primary : t.border,
-                  },
-                ]}>
-                <Texto variante="captionStrong" color={activa ? '#FFFFFF' : t.textMuted}>
-                  {f.id}
-                </Texto>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
+        {/* Formaciones y acciones comparten fila: en pantallas bajas cada línea
+            que se ahorra es alto que gana la cancha. */}
+        <View style={styles.barraHerramientas}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.formacionesScroll}
+            contentContainerStyle={styles.formaciones}>
+            {FORMACIONES.map((f) => {
+              const activa = f.id === alineacionActual.formacion;
+              return (
+                <Pressable
+                  key={f.id}
+                  onPress={() => aplicarFormacion(f.id)}
+                  accessibilityRole="tab"
+                  accessibilityState={{ selected: activa }}
+                  accessibilityLabel={`Formación ${f.id}`}
+                  style={[
+                    styles.chipFormacion,
+                    {
+                      backgroundColor: activa ? t.primary : t.surface,
+                      borderColor: activa ? t.primary : t.border,
+                    },
+                  ]}>
+                  <Texto variante="captionStrong" color={activa ? '#FFFFFF' : t.textMuted}>
+                    {f.id}
+                  </Texto>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
 
-        <View style={styles.acciones}>
           <Boton
-            titulo="Autocompletar"
             icono="flash"
             variante="suave"
             tamano="sm"
             onPress={autocompletar}
             deshabilitado={jugadores.length === 0}
-            estiloContenedor={styles.flex}
+            accessibilityLabel="Autocompletar alineación"
           />
           <Boton
-            titulo="Vaciar"
             icono="refresh"
             variante="contorno"
             tamano="sm"
@@ -180,17 +182,19 @@ export default function AlineacionScreen() {
               setSeleccionadoId(null);
             }}
             deshabilitado={titulares === 0}
-            estiloContenedor={styles.flex}
+            accessibilityLabel="Vaciar la cancha"
           />
         </View>
 
-        <Cancha
-          jugadores={enCancha}
-          capitanId={alineacionActual.capitanId}
-          seleccionadoId={seleccionadoId}
-          onMover={moverJugador}
-          onSeleccionar={setSeleccionadoId}
-        />
+        <View style={styles.canchaZona}>
+          <Cancha
+            jugadores={enCancha}
+            capitanId={alineacionActual.capitanId}
+            seleccionadoId={seleccionadoId}
+            onMover={moverJugador}
+            onSeleccionar={setSeleccionadoId}
+          />
+        </View>
 
         {seleccionado ? (
           <View
@@ -244,6 +248,7 @@ export default function AlineacionScreen() {
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
+          style={styles.bancaScroll}
           contentContainerStyle={styles.banca}>
           {banca.length === 0 ? (
             <Texto variante="caption" tono="faint">
@@ -349,19 +354,22 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.lg,
     paddingBottom: Spacing.md,
   },
-  formacionesScroll: { flexGrow: 0 },
+  // Cada fila que no es la cancha lleva flexShrink: 0. Así, cuando la pantalla es
+  // baja, lo que se encoge es el campo y la banca nunca se sale de la vista.
+  barraHerramientas: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    marginBottom: Spacing.md,
+    flexShrink: 0,
+  },
+  formacionesScroll: { flexGrow: 0, flexShrink: 1 },
   formaciones: { gap: Spacing.sm, alignItems: 'center' },
   chipFormacion: {
     paddingHorizontal: Spacing.lg,
     paddingVertical: 8,
     borderRadius: Radius.pill,
     borderWidth: 1,
-  },
-  acciones: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-    marginTop: Spacing.md,
-    marginBottom: Spacing.md,
   },
   barraSeleccion: {
     flexDirection: 'row',
@@ -372,6 +380,7 @@ const styles = StyleSheet.create({
     paddingLeft: Spacing.md,
     borderRadius: Radius.lg,
     borderWidth: 1,
+    flexShrink: 0,
   },
   barraDorsal: {
     width: 28,
@@ -384,13 +393,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: Spacing.lg,
+    marginTop: Spacing.md,
     marginBottom: Spacing.sm,
+    flexShrink: 0,
   },
+  canchaZona: { flex: 1, flexShrink: 1, minHeight: 0 },
+  bancaScroll: { flexGrow: 0, flexShrink: 0, height: 52 },
   banca: {
     gap: Spacing.sm,
     alignItems: 'center',
-    minHeight: 56,
   },
   bancaFicha: {
     flexDirection: 'row',

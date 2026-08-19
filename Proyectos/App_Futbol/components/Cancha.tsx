@@ -1,5 +1,5 @@
 import * as Haptics from 'expo-haptics';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { LayoutChangeEvent, Platform, StyleSheet, View, ViewStyle } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
@@ -13,10 +13,39 @@ import { Texto } from '@/components/ui/Texto';
 import { Cesped, Radius, ROLES } from '@/constants/design';
 import { Jugador } from '@/types/futbol';
 
-const CIRCULO = 40;
-const FICHA_W = 64;
-const FICHA_H = CIRCULO + 18;
 const FRANJAS = 9;
+
+export interface DimFicha {
+  circulo: number;
+  ancho: number;
+  alto: number;
+  pastilla: number;
+  fuenteNum: number;
+  fuenteNom: number;
+  conNombre: boolean;
+}
+
+/**
+ * La ficha se dimensiona a partir del tamaño real de la cancha: en pantallas bajas
+ * el campo es más pequeño y con medidas fijas las fichas se solapaban.
+ */
+function calcularDim(width: number, height: number): DimFicha {
+  const base = Math.min(width * 0.118, height * 0.092);
+  const circulo = Math.round(Math.max(24, Math.min(42, base)));
+  // Por debajo de cierto tamaño la pastilla del apellido ya no cabe entre líneas.
+  const conNombre = circulo >= 30;
+  return {
+    circulo,
+    // El ancho es el del círculo: la pastilla del apellido va centrada y puede
+    // sobresalir sin robar espacio de separación entre jugadores.
+    ancho: Math.round(circulo * 1.06),
+    alto: circulo + (conNombre ? Math.round(circulo * 0.42) : 0),
+    pastilla: Math.round(circulo * 1.95),
+    fuenteNum: Math.max(11, Math.round(circulo * 0.4)),
+    fuenteNom: Math.max(7, Math.round(circulo * 0.21)),
+    conNombre,
+  };
+}
 
 /** En web hay que desactivar el gesto de scroll y la selección de texto sobre la ficha. */
 const ESTILO_WEB_FICHA = (Platform.OS === 'web'
@@ -61,6 +90,8 @@ export function Cancha({
     setSize({ width, height });
   }, []);
 
+  const dim = useMemo(() => calcularDim(size.width, size.height), [size.width, size.height]);
+
   return (
     <View style={styles.cancha} onLayout={handleLayout}>
       <Franjas />
@@ -73,6 +104,7 @@ export function Cancha({
             jugador={jugador}
             xRel={x}
             yRel={y}
+            dim={dim}
             esCapitan={jugador.id === capitanId}
             seleccionado={jugador.id === seleccionadoId}
             canchaWidth={size.width}
@@ -142,6 +174,7 @@ function Ficha({
   jugador,
   xRel,
   yRel,
+  dim,
   esCapitan,
   seleccionado,
   canchaWidth,
@@ -152,6 +185,7 @@ function Ficha({
   jugador: Jugador;
   xRel: number;
   yRel: number;
+  dim: DimFicha;
   esCapitan: boolean;
   seleccionado: boolean;
   canchaWidth: number;
@@ -159,11 +193,11 @@ function Ficha({
   onMover: (jugadorId: string, x: number, y: number) => void;
   onSeleccionar: (jugadorId: string | null) => void;
 }) {
-  const maxLeft = Math.max(canchaWidth - FICHA_W, 0);
-  const maxTop = Math.max(canchaHeight - FICHA_H, 0);
+  const maxLeft = Math.max(canchaWidth - dim.ancho, 0);
+  const maxTop = Math.max(canchaHeight - dim.alto, 0);
 
-  const aLeft = (x: number) => Math.min(Math.max(x * canchaWidth - FICHA_W / 2, 0), maxLeft);
-  const aTop = (y: number) => Math.min(Math.max(y * canchaHeight - CIRCULO / 2, 0), maxTop);
+  const aLeft = (x: number) => Math.min(Math.max(x * canchaWidth - dim.ancho / 2, 0), maxLeft);
+  const aTop = (y: number) => Math.min(Math.max(y * canchaHeight - dim.circulo / 2, 0), maxTop);
 
   const left = useSharedValue(aLeft(xRel));
   const top = useSharedValue(aTop(yRel));
@@ -172,22 +206,23 @@ function Ficha({
   const escala = useSharedValue(1);
   const capa = useSharedValue(1);
 
-  // Sincroniza cuando la posición cambia desde fuera (auto-asignar, cambio de formación).
+  // Sincroniza cuando la posición cambia desde fuera (auto-asignar, cambio de formación,
+  // o un cambio de tamaño de la cancha al rotar/redimensionar).
   useEffect(() => {
     left.value = withSpring(aLeft(xRel), { damping: 18, stiffness: 160 });
     top.value = withSpring(aTop(yRel), { damping: 18, stiffness: 160 });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [xRel, yRel, canchaWidth, canchaHeight]);
+  }, [xRel, yRel, canchaWidth, canchaHeight, dim.ancho, dim.alto]);
 
   const notificar = useCallback(
     (pxLeft: number, pxTop: number) => {
       onMover(
         jugador.id,
-        (pxLeft + FICHA_W / 2) / canchaWidth,
-        (pxTop + CIRCULO / 2) / canchaHeight
+        (pxLeft + dim.ancho / 2) / canchaWidth,
+        (pxTop + dim.circulo / 2) / canchaHeight
       );
     },
-    [canchaWidth, canchaHeight, jugador.id, onMover]
+    [canchaWidth, canchaHeight, dim.ancho, dim.circulo, jugador.id, onMover]
   );
 
   const pan = Gesture.Pan()
@@ -230,14 +265,25 @@ function Ficha({
       <Animated.View
         testID={`ficha-${jugador.id}`}
         accessibilityLabel={`Ficha de ${jugador.nombre}, dorsal ${jugador.numero}`}
-        style={[styles.ficha, ESTILO_WEB_FICHA, estiloAnimado]}>
+        style={[
+          styles.ficha,
+          { width: dim.ancho, height: dim.alto },
+          ESTILO_WEB_FICHA,
+          estiloAnimado,
+        ]}>
         <View
           style={[
             styles.fichaCirculo,
-            { borderColor: colorRol },
+            {
+              width: dim.circulo,
+              height: dim.circulo,
+              borderRadius: dim.circulo / 2,
+              borderWidth: dim.circulo >= 34 ? 3 : 2,
+              borderColor: colorRol,
+            },
             seleccionado && styles.fichaSeleccionada,
           ]}>
-          <Texto variante="subtitle" color={colorRol}>
+          <Texto color={colorRol} style={{ fontSize: dim.fuenteNum, fontWeight: '800' }}>
             {jugador.numero}
           </Texto>
           {esCapitan ? (
@@ -249,11 +295,16 @@ function Ficha({
           ) : null}
         </View>
 
-        <View style={styles.pastilla}>
-          <Texto variante="overline" color="#FFFFFF" numberOfLines={1}>
-            {apellido(jugador.nombre)}
-          </Texto>
-        </View>
+        {dim.conNombre ? (
+          <View style={[styles.pastilla, { maxWidth: dim.pastilla }]}>
+            <Texto
+              color="#FFFFFF"
+              numberOfLines={1}
+              style={{ fontSize: dim.fuenteNom, fontWeight: '800', letterSpacing: 0.4 }}>
+              {apellido(jugador.nombre)}
+            </Texto>
+          </View>
+        ) : null}
       </Animated.View>
     </GestureDetector>
   );
@@ -267,7 +318,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Cesped.borde,
     overflow: 'hidden',
-    minHeight: 400,
+    minHeight: 190,
   },
   capa: {
     ...StyleSheet.absoluteFillObject,
@@ -397,16 +448,10 @@ const styles = StyleSheet.create({
 
   ficha: {
     position: 'absolute',
-    width: FICHA_W,
-    height: FICHA_H,
     alignItems: 'center',
   },
   fichaCirculo: {
-    width: CIRCULO,
-    height: CIRCULO,
-    borderRadius: CIRCULO / 2,
     backgroundColor: '#FFFFFF',
-    borderWidth: 3,
     alignItems: 'center',
     justifyContent: 'center',
     boxShadow: '0px 3px 8px rgba(0, 0, 0, 0.35)',
@@ -429,11 +474,10 @@ const styles = StyleSheet.create({
   },
   brazaleteTexto: { fontSize: 9, letterSpacing: 0 },
   pastilla: {
-    marginTop: 4,
+    marginTop: 3,
     // Puede sobresalir de la ficha: va centrada y así caben más apellidos completos.
-    maxWidth: 90,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
     borderRadius: Radius.pill,
     backgroundColor: 'rgba(6, 30, 18, 0.72)',
   },
